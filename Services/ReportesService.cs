@@ -4,7 +4,7 @@ using Google.Cloud.Firestore;
 
 namespace PlataformJuegoTorneo.Services
 {
-    public class ReportesService
+    public class ReportesService: IReportesService
     {
         private readonly FirebaseService _firebaseService;
         private readonly ILogger<ReportesService> _logger;
@@ -48,7 +48,7 @@ namespace PlataformJuegoTorneo.Services
             var jugadoresRef = _firebaseService.GetCollection("jugadores");
             var snapshot = await jugadoresRef.GetSnapshotAsync();
             var jugadores = snapshot.Documents
-                .Select(d => d.ConvertTo<Jugador>())
+                .Select(d => d.ConvertTo<Jugadores>())
                 .OrderByDescending(j => j.PuntosGlobales)
                 .Take(20)
                 .ToList();
@@ -61,7 +61,7 @@ namespace PlataformJuegoTorneo.Services
             {
                 Nombre = j.Nombre,
                 PuntosGlobales = j.PuntosGlobales,
-                TorneosGanados = j.TorneoGanados,
+                TorneosGanados = j.TorneosGanados,
                 CantidadJuegos = juegosPorJugador.ContainsKey(j.Id.ToString()) ? juegosPorJugador[j.Id.ToString()] : 0
             });
         }

@@ -11,10 +11,10 @@ namespace PlataformJuegoTorneo.Controllers
     [Route("api/reportes")]
     public class ReportesController : ControllerBase
     {
-        private readonly ReportesService _reportesService;
+        private readonly IReportesService _reportesService;
         private readonly ILogger<ReportesController> _logger;
 
-        public ReportesController(ReportesService reportesService, ILogger<ReportesController> logger)
+        public ReportesController(IReportesService reportesService, ILogger<ReportesController> logger)
         {
             _reportesService = reportesService;
             _logger = logger;
