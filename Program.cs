@@ -1,25 +1,39 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+
+using PlataformJuegoTorneo.Controllers;
 using PlataformJuegoTorneo.Interfaces;
 using PlataformJuegoTorneo.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// ============================================
+// REGISTRAR SERVICIOS
+// ============================================
 builder.Services.AddSingleton<FirebaseService>();
-builder.Services.AddScoped<IGamesService, GamesService>();
-builder.Services.AddScoped<IReportesService, ReportesService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IClasificacionesService, ClasificacionesService>();
+builder.Services.AddScoped<IGamesService, GamesService>();
 
+// ============================================
+// CONFIGURAR CORS (para que Angular pueda conectarse)
+// ============================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200") // URL de Angular
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
+// ============================================
+// CONFIGURAR AUTENTICACI�N JWT
+// ============================================
 var jwtKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException("JWT SecretKey no configurada");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -50,9 +64,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ============================================
+// HABILITAR AUTHORIZE BUTTON EN SWAGGER
+// ============================================
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MovieRater API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Plataform De Juegos Y Torneos API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
     {
         Name = "Authorization",
@@ -78,10 +95,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ============================================
+// CONFIGURE HTTP REQUEST PIPELINE
+// ============================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -90,9 +108,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();  // ? Primero autenticación
-app.UseAuthorization();
+app.UseCors("AllowAngular");
+app.UseAuthentication();  // ? Primero autenticaci�n
+app.UseAuthorization();   // ? Luego autorizaci�n
 
 app.MapControllers();
-
 app.Run();
