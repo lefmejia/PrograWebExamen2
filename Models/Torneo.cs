@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Authorization;
 namespace PlataformJuegoTorneo.Models

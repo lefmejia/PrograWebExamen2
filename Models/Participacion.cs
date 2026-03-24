@@ -15,5 +15,15 @@ namespace PlataformJuegoTorneo.Models
         [FirestoreProperty] public int partidasJugadas { get; set; } = 0;
         [FirestoreProperty] public bool pagado { get; set; }
         [FirestoreProperty] public DateTime fechaInscripcion { get; set; } = DateTime.UtcNow;
+         public int Penalizaciones { get; set; }
+    }
+
+    
+    public class EstadisticasJuego
+    {
+        public int Asesinatos { get; set; }
+        public int Muertes { get; set; }
+        public int Asistencias { get; set; }
+        public int DañoCausado { get; set; }
     }
 }

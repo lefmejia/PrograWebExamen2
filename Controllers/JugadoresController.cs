@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PlataformJuegoTorneo.DTOs;
 using PlataformJuegoTorneo.Models;
 using PlataformJuegoTorneo.Services;
+using System.Security.Claims;
 
 namespace PlataformJuegoTorneo.Controllers
 {
@@ -12,11 +13,13 @@ namespace PlataformJuegoTorneo.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IClasificacionesService _clasificacionesService;
 
-        public JugadoresController(IAuthService authService, ILogger<AuthController> logger)
+        public JugadoresController(IAuthService authService, ILogger<AuthController> logger, IClasificacionesService clasificacionesService)
         {
             _authService = authService;
             _logger = logger;
+            _clasificacionesService = clasificacionesService;
         }
 
         [HttpGet("{jugadorId}")]
@@ -97,6 +100,19 @@ namespace PlataformJuegoTorneo.Controllers
                 _logger.LogError($"Error al actualizar película: {ex.Message}");
                 return StatusCode(500, new { message = "Error al actualizar película" });
             }
+        }
+
+        [HttpGet("clasificacion/{juegoId}")]
+        [Authorize]
+        public async Task<IActionResult> GetMiClasificacion(string juegoId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+            var result = await _clasificacionesService.GetMiClasificacion(juegoId, userId);
+            if (result == null)
+                return NotFound();
+            return Ok(result);
         }
     }
 }
