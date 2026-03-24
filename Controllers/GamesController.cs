@@ -7,8 +7,7 @@ using System.Security.Claims;
 namespace PlataformJuegoTorneo.Controllers
 {
     /// <summary>
-    /// VideojuegosController: Gestión de catálogo de juegos
-    /// Responsable: Integrante 2
+    /// GamesController: Gestión de catálogo de juegos
     /// </summary>
     [Route("api/games")]
     [ApiController]
