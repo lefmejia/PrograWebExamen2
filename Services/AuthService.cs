@@ -112,7 +112,7 @@ namespace PlataformJuegoTorneo.Services
                     Pais = registroDto.Pais,
                     Rol = "jugador",
                     PuntosGlobales = 0,
-                    PuntosGanados = 0,
+                    TorneosGanados = 0,
                     FechaRegistro = DateTime.UtcNow,
                     Activo = true,
                     Conectado = false
@@ -131,8 +131,7 @@ namespace PlataformJuegoTorneo.Services
                     { "Pais", newUser.Pais },
                     { "Rol", newUser.Rol },
                     { "PuntosGlobales", newUser.PuntosGlobales },
-                    { "PuntosGlobales", newUser.PuntosGlobales },
-                    { "PuntosGanados", newUser.PuntosGanados },
+                    { "TorneosGanados", newUser.TorneosGanados },
                     { "FechaRegistro", newUser.FechaRegistro },
                     { "Activo", newUser.Activo },
                     { "Conectado", newUser.Conectado },
@@ -159,19 +158,161 @@ namespace PlataformJuegoTorneo.Services
                 throw;
             }
         }
-        public Task<(Jugadores jugador, string token)> Login(LoginDto loginDto)
+        public async Task<(Jugadores jugador, string token)> Login(LoginDto loginDto)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(loginDto.Correo) ||
+                    string.IsNullOrWhiteSpace(loginDto.Password))
+                {
+                    throw new ArgumentException("Email y contraseña son requeridos");
+                }
+
+                var jugadoresCollection = _firebaseService.GetCollection("jugadores");
+
+                if (jugadoresCollection == null)
+                {
+                    throw new InvalidOperationException("No se pudo obtener la colección de usuarios");
+                }
+
+                var query = await jugadoresCollection
+                    .WhereEqualTo("Correo", loginDto.Correo)
+                    .GetSnapshotAsync();
+
+                if (query.Count == 0)
+                {
+                    throw new InvalidOperationException("Email o contraseña incorrectos");
+                }
+
+                var userDoc = query.Documents[0];
+                var userDict = userDoc.ToDictionary();
+
+                // Obtener el hash de contraseña guardado
+                var passwordHash = userDict["PasswordHash"].ToString();
+
+                // Validar la contraseña contra el hash con BCrypt
+                if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, passwordHash))
+                {
+                    throw new InvalidOperationException("Email o contraseña incorrectos");
+                }
+
+                // Convertir el diccionario a objeto User
+                var jugador = new Jugadores
+                {
+                    Id = userDict["Id"].ToString(),
+                    Correo = userDict["Correo"].ToString(),
+                    Nombre = userDict["Fullname"].ToString(),
+                    Rol = userDict["Rol"].ToString(),
+                    Apellido = userDict["Apellido"].ToString(),
+                    NombreUsuario = userDict["NombreUsuario"].ToString(),
+                    Pais = userDict["Pais"].ToString(),
+                    TorneosGanados = (int)(long)userDict["TorneosGanados"],
+                    PuntosGlobales = (int)(long)userDict["PuntosGlobales"],
+                    FechaRegistro = ((Timestamp)userDict["FechaRegistro"]).ToDateTime(),
+                    UltimaConexion = ((Timestamp)userDict["UltimaConexion"]).ToDateTime(),
+                    Activo = (bool)userDict["Activo"],
+                    Conectado = (bool)userDict["Conectado"]
+                };
+
+                var token = GenerateJwtToken(jugador);
+
+                // Actualizar LastLogin
+                await jugadoresCollection.Document(jugador.Id).UpdateAsync(
+                    new Dictionary<string, object>
+                    {
+                        { "UltimaConexion", DateTime.UtcNow },
+                        { "Conectado", true }
+                    }
+                );
+
+                return (jugador, token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error en Login: {ex.Message}");
+                throw;
+            }
         }
 
-        public Task<List<Jugadores>?> GetAllJugadores()
+        public async Task<List<Jugadores>?> GetAllJugadores()
         {
-            throw new NotImplementedException();
+            try
+            {
+                var jugadoresCollection = _firebaseService.GetCollection("jugadores");
+                var query = jugadoresCollection.WhereEqualTo("Rol", "jugador");
+                var snapshot = await query.GetSnapshotAsync();
+
+                var jugadores = new List<Jugadores>();
+
+                foreach (var doc in snapshot.Documents)
+                {
+                    var userDict = doc.ToDictionary();
+                    var jugador = new Jugadores
+                    {
+                        Id = userDict["Id"].ToString(),
+                        Correo = userDict["Correo"].ToString(),
+                        Nombre = userDict["Fullname"].ToString(),
+                        Rol = userDict["Rol"].ToString(),
+                        Apellido = userDict["Apellido"].ToString(),
+                        NombreUsuario = userDict["NombreUsuario"].ToString(),
+                        Pais = userDict["Pais"].ToString(),
+                        TorneosGanados = (int)(long)userDict["TorneosGanados"],
+                        PuntosGlobales = (int)(long)userDict["PuntosGlobales"],
+                        FechaRegistro = ((Timestamp)userDict["FechaRegistro"]).ToDateTime(),
+                        UltimaConexion = ((Timestamp)userDict["UltimaConexion"]).ToDateTime(),
+                        Activo = (bool)userDict["Activo"],
+                        Conectado = (bool)userDict["Conectado"]
+                    };
+                    jugadores.Add(jugador);
+                }
+
+                return jugadores;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error al obtener huéspedes: {ex.Message}");
+                return null;
+            }
         }
 
-        public Task<Jugadores?> GetJugadorById(string userId)
+        public async Task<Jugadores?> GetJugadorById(string userId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var usersCollection = _firebaseService.GetCollection("jugadores");
+                var doc = await usersCollection.Document(userId).GetSnapshotAsync();
+
+                if (!doc.Exists)
+                {
+                    return null;
+                }
+
+                var userDict = doc.ToDictionary();
+
+                var jugador = new Jugadores
+                {
+                    Id = userDict["Id"].ToString(),
+                    Correo = userDict["Correo"].ToString(),
+                    Nombre = userDict["Fullname"].ToString(),
+                    Rol = userDict["Rol"].ToString(),
+                    Apellido = userDict["Apellido"].ToString(),
+                    NombreUsuario = userDict["NombreUsuario"].ToString(),
+                    Pais = userDict["Pais"].ToString(),
+                    TorneosGanados = (int)(long)userDict["TorneosGanados"],
+                    PuntosGlobales = (int)(long)userDict["PuntosGlobales"],
+                    FechaRegistro = ((Timestamp)userDict["FechaRegistro"]).ToDateTime(),
+                    UltimaConexion = ((Timestamp)userDict["UltimaConexion"]).ToDateTime(),
+                    Activo = (bool)userDict["Activo"],
+                    Conectado = (bool)userDict["Conectado"]
+                };
+
+                return jugador;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error al obtener jugador: {ex.Message}");
+                return null;
+            }
         }
 
         public string GenerateJwtToken(Jugadores jugador)

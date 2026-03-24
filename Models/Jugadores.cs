@@ -22,7 +22,7 @@
 
         public int PuntosGlobales { get; set; }
 
-        public int PuntosGanados { get; set; }
+        public int TorneosGanados { get; set; }
 
         public DateTime UltimaConexion { get; set; }
 

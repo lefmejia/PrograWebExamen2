@@ -12,7 +12,7 @@
 
         public int PuntosGlobales { get; set; }
 
-        public int PuntosGanados { get; set; }
+        public int TorneosGanados { get; set; }
 
         public DateTime UltimaConexion { get; set; }
 
@@ -41,7 +41,7 @@
 
     public class LoginDto
     {
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 
