@@ -1,6 +1,6 @@
 ﻿namespace PlataformJuegoTorneo.DTOs
 {
-    public class Games
+    public class GamesDTO
     {
         public string Id { get; set; }
         public string Titulo { get; set; }
