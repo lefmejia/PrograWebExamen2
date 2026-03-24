@@ -115,6 +115,7 @@ namespace PlataformJuegoTorneo.Services
                     PuntosGlobales = 0,
                     TorneosGanados = 0,
                     FechaRegistro = DateTime.UtcNow,
+                    UltimaConexion = DateTime.UtcNow,
                     Activo = true,
                     Conectado = false
                 };
@@ -133,6 +134,7 @@ namespace PlataformJuegoTorneo.Services
                     { "PuntosGlobales", newUser.PuntosGlobales },
                     { "TorneosGanados", newUser.TorneosGanados },
                     { "FechaRegistro", newUser.FechaRegistro },
+                    { "UltimaConexion", newUser.UltimaConexion },
                     { "Activo", newUser.Activo },
                     { "Conectado", newUser.Conectado },
                     { "PasswordHash", passwordHash }  // Guardar hash, NO la contraseña
@@ -375,6 +377,7 @@ namespace PlataformJuegoTorneo.Services
                     { "PuntosGlobales", existingJugador.PuntosGlobales },
                     { "TorneosGanados", existingJugador.TorneosGanados },
                     { "FechaRegistro", existingJugador.FechaRegistro },
+                    { "UltimaConexion", existingJugador.UltimaConexion },
                     { "Activo", existingJugador.Activo },
                     { "Conectado", existingJugador.Conectado },
                     { "PasswordHash", existingDict["PasswordHash"].ToString() },
