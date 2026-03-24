@@ -13,6 +13,8 @@ namespace PlataformJuegoTorneo.Services
 
         Task<Jugadores?> GetJugadorById(string userId);
 
+        Task<Jugadores> ActualizarPerfil(string jugadorId, Jugadores jugador);
+
         string GenerateJwtToken(Jugadores jugador);
 
         Task<List<Jugadores>?> GetAllJugadores();

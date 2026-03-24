@@ -1,12 +1,13 @@
-﻿using PlataformJuegoTorneo.DTOs;
-using PlataformJuegoTorneo.Models;
+﻿using BCrypt.Net;
 using Google.Cloud.Firestore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using PlataformJuegoTorneo.DTOs;
+using PlataformJuegoTorneo.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using BCrypt.Net;
 
 namespace PlataformJuegoTorneo.Services
 {
@@ -129,7 +130,6 @@ namespace PlataformJuegoTorneo.Services
                     { "NombreUsuario", newUser.NombreUsuario },
                     { "Edad", newUser.Edad },
                     { "Pais", newUser.Pais },
-                    { "Rol", newUser.Rol },
                     { "PuntosGlobales", newUser.PuntosGlobales },
                     { "TorneosGanados", newUser.TorneosGanados },
                     { "FechaRegistro", newUser.FechaRegistro },
@@ -172,7 +172,7 @@ namespace PlataformJuegoTorneo.Services
 
                 if (jugadoresCollection == null)
                 {
-                    throw new InvalidOperationException("No se pudo obtener la colección de usuarios");
+                    throw new InvalidOperationException("No se pudo obtener la colección de juagadores");
                 }
 
                 var query = await jugadoresCollection
@@ -201,15 +201,15 @@ namespace PlataformJuegoTorneo.Services
                 {
                     Id = userDict["Id"].ToString(),
                     Correo = userDict["Correo"].ToString(),
-                    Nombre = userDict["Fullname"].ToString(),
+                    Nombre = userDict["Nombre"].ToString(),
                     Rol = userDict["Rol"].ToString(),
                     Apellido = userDict["Apellido"].ToString(),
                     NombreUsuario = userDict["NombreUsuario"].ToString(),
                     Pais = userDict["Pais"].ToString(),
                     TorneosGanados = (int)(long)userDict["TorneosGanados"],
                     PuntosGlobales = (int)(long)userDict["PuntosGlobales"],
+                    Edad = (int)(long)userDict["Edad"],
                     FechaRegistro = ((Timestamp)userDict["FechaRegistro"]).ToDateTime(),
-                    UltimaConexion = ((Timestamp)userDict["UltimaConexion"]).ToDateTime(),
                     Activo = (bool)userDict["Activo"],
                     Conectado = (bool)userDict["Conectado"]
                 };
@@ -251,13 +251,14 @@ namespace PlataformJuegoTorneo.Services
                     {
                         Id = userDict["Id"].ToString(),
                         Correo = userDict["Correo"].ToString(),
-                        Nombre = userDict["Fullname"].ToString(),
+                        Nombre = userDict["Nombre"].ToString(),
                         Rol = userDict["Rol"].ToString(),
                         Apellido = userDict["Apellido"].ToString(),
                         NombreUsuario = userDict["NombreUsuario"].ToString(),
                         Pais = userDict["Pais"].ToString(),
                         TorneosGanados = (int)(long)userDict["TorneosGanados"],
                         PuntosGlobales = (int)(long)userDict["PuntosGlobales"],
+                        Edad = (int)(long)userDict["Edad"],
                         FechaRegistro = ((Timestamp)userDict["FechaRegistro"]).ToDateTime(),
                         UltimaConexion = ((Timestamp)userDict["UltimaConexion"]).ToDateTime(),
                         Activo = (bool)userDict["Activo"],
@@ -293,7 +294,7 @@ namespace PlataformJuegoTorneo.Services
                 {
                     Id = userDict["Id"].ToString(),
                     Correo = userDict["Correo"].ToString(),
-                    Nombre = userDict["Fullname"].ToString(),
+                    Nombre = userDict["Nombre"].ToString(),
                     Rol = userDict["Rol"].ToString(),
                     Apellido = userDict["Apellido"].ToString(),
                     NombreUsuario = userDict["NombreUsuario"].ToString(),
@@ -312,6 +313,82 @@ namespace PlataformJuegoTorneo.Services
             {
                 _logger.LogError($"Error al obtener jugador: {ex.Message}");
                 return null;
+            }
+        }
+
+        public async Task<Jugadores> ActualizarPerfil(string jugadorId, Jugadores jugador)
+        {
+            try
+            {
+                // Validar entrada
+                if (string.IsNullOrWhiteSpace(jugadorId))
+                {
+                    throw new ArgumentException("El ID de jugador es requerido");
+                }
+
+                var jugadoresCollection = _firebaseService.GetCollection("jugadores");
+
+                // Verificar que la película existe
+                var existingDoc = await jugadoresCollection.Document(jugadorId).GetSnapshotAsync();
+                if (!existingDoc.Exists)
+                {
+                    throw new InvalidOperationException($"Jugador con ID {jugadorId} no existe");
+                }
+
+                // Obtener la película existente para preservar campos de auditoría
+                var existingDict = existingDoc.ToDictionary();
+                var existingJugador = new Jugadores
+                {
+                    Id = existingDict["Id"].ToString(),
+                    Correo = existingDict["Correo"].ToString(),
+                    Nombre = existingDict["Nombre"].ToString(),
+                    Rol = existingDict["Rol"].ToString(),
+                    Apellido = existingDict["Apellido"].ToString(),
+                    NombreUsuario = existingDict["NombreUsuario"].ToString(),
+                    Pais = existingDict["Pais"].ToString(),
+                    TorneosGanados = (int)(long)existingDict["TorneosGanados"],
+                    PuntosGlobales = (int)(long)existingDict["PuntosGlobales"],
+                    Edad = (int)(long)existingDict["Edad"],
+                    FechaRegistro = ((Timestamp)existingDict["FechaRegistro"]).ToDateTime(),
+                    UltimaConexion = ((Timestamp)existingDict["UltimaConexion"]).ToDateTime(),
+                    Activo = (bool)existingDict["Activo"],
+                    Conectado = (bool)existingDict["Conectado"]
+                };
+
+                // Actualizar solo los campos permitidos
+                existingJugador.Nombre = jugador.Nombre ?? existingJugador.Nombre;
+                existingJugador.Apellido = jugador.Apellido ?? existingJugador.Apellido;
+                existingJugador.Edad = jugador.Edad > 0 ? jugador.Edad : existingJugador.Edad;
+                existingJugador.Pais = jugador.Pais ?? existingJugador.Pais;
+
+                // Guardar cambios usando Dictionary
+                var jugadorData = new Dictionary<string, object>
+                {
+                    { "Id", existingJugador.Id },
+                    { "Correo", existingJugador.Correo },
+                    { "Nombre", existingJugador.Nombre },
+                    { "Rol", existingJugador.Rol },
+                    { "Apellido", existingJugador.Apellido },
+                    { "NombreUsuario", existingJugador.NombreUsuario },
+                    { "Edad", existingJugador.Edad },
+                    { "Pais", existingJugador.Pais },
+                    { "PuntosGlobales", existingJugador.PuntosGlobales },
+                    { "TorneosGanados", existingJugador.TorneosGanados },
+                    { "FechaRegistro", existingJugador.FechaRegistro },
+                    { "Activo", existingJugador.Activo },
+                    { "Conectado", existingJugador.Conectado },
+                    { "PasswordHash", existingDict["PasswordHash"].ToString() },
+                };
+
+                await jugadoresCollection.Document(jugadorId).SetAsync(jugadorData);
+
+                Console.WriteLine($"Película actualizada: {jugadorId}");
+                return existingJugador;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al actualizar película: {ex.Message}");
+                throw;
             }
         }
 
