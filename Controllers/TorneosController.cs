@@ -84,5 +84,41 @@ namespace Examen2PrograWeb.Controllers
 
             return Ok(resultados);
         }
+    
+    // 3. ENDPOINT: ACTUALIZAR ESTADO (PATCH)
+// Requisito: Los torneos inician en "próximo" y deben poder cambiar de fase
+[HttpPatch("{id}/estado")]
+        public async Task<IActionResult> ActualizarEstado(string id, [FromBody] string nuevoEstado)
+        {
+            // Validamos que el estado sea uno de los permitidos en las reglas del negocio
+            var estadosValidos = new List<string> { "próximo", "en progreso", "finalizado", "cancelado" };
+
+            if (string.IsNullOrEmpty(nuevoEstado) || !estadosValidos.Contains(nuevoEstado.ToLower()))
+            {
+                return BadRequest("Estado no válido. Use: próximo, en progreso, finalizado o cancelado.");
+            }
+
+            try
+            {
+
+                DocumentReference docRef = _db.Collection("torneos").Document(id);
+
+                // Verificar que el torneo existe
+                DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+                if (!snapshot.Exists)
+                {
+                    return NotFound($"No se encontró el torneo con ID: {id}");
+                }
+
+                // Actualizar estado del torneo
+                await docRef.UpdateAsync("estado", nuevoEstado.ToLower());
+
+                return Ok(new { mensaje = $"Estado del torneo {id} actualizado a {nuevoEstado}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al actualizar en Firebase: {ex.Message}");
+            }
+        }
     }
 }
