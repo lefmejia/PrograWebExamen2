@@ -29,7 +29,7 @@ namespace PlataformJuegoTorneo.Services
                 var collection = _firebaseService.GetCollection(_collectionName);
 
                 // Validar título único
-                var existing = await collection.WhereEqualTo("titulo", dto.Titulo).GetSnapshotAsync();
+                var existing = await collection.WhereEqualTo("Titulo", dto.Titulo).GetSnapshotAsync();
                 if (existing.Count > 0) throw new ArgumentException("El título ya existe en el sistema.");
 
                 var juego = new Games
@@ -62,11 +62,11 @@ namespace PlataformJuegoTorneo.Services
             try
             {
                 var collection = _firebaseService.GetCollection(_collectionName);
-                Query query = collection.WhereEqualTo("estado", "disponible");
+                Query query = collection.WhereEqualTo("Estado", "disponible");
 
-                if (!string.IsNullOrWhiteSpace(genero)) query = query.WhereEqualTo("genero", genero);
-                if (!string.IsNullOrWhiteSpace(desarrollador)) query = query.WhereEqualTo("desarrollador", desarrollador);
-                if (!string.IsNullOrWhiteSpace(plataforma)) query = query.WhereArrayContains("plataformas", plataforma);
+                if (!string.IsNullOrWhiteSpace(genero)) query = query.WhereEqualTo("Genero", genero);
+                if (!string.IsNullOrWhiteSpace(desarrollador)) query = query.WhereEqualTo("Desarrollador", desarrollador);
+                if (!string.IsNullOrWhiteSpace(plataforma)) query = query.WhereArrayContains("Plataformas", plataforma);
 
                 var snapshot = await query.GetSnapshotAsync();
                 return snapshot.Documents.Select(doc => ConvertToDto(doc.ConvertTo<Games>())).ToList();
@@ -88,9 +88,9 @@ namespace PlataformJuegoTorneo.Services
                 // Solo actualizar campos permitidos según requerimiento
                 var updates = new Dictionary<string, object>
                 {
-                    { "descripcion", dto.Descripcion },
-                    { "puntuacionPromedio", dto.PuntuacionPromedio },
-                    { "estado", dto.Estado }
+                    { "Descripcion", dto.Descripcion },
+                    { "PuntuacionPromedio", dto.PuntuacionPromedio },
+                    { "Estado", dto.Estado }
                 };
 
                 await docRef.UpdateAsync(updates);
